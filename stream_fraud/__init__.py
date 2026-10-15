@@ -4,6 +4,7 @@ from stream_fraud.drift import DriftMonitor, DriftResult
 from stream_fraud.features import FeatureVector, VelocityFeatures
 from stream_fraud.scorer import RiskScorer, ScoreResult
 from stream_fraud.stream import Transaction, TransactionStream
+from stream_fraud.threshold import CostAwareThreshold, LabeledObservation, TuningResult
 
 __all__ = [
     "Transaction",
@@ -14,4 +15,7 @@ __all__ = [
     "ScoreResult",
     "DriftMonitor",
     "DriftResult",
+    "CostAwareThreshold",
+    "LabeledObservation",
+    "TuningResult",
 ]

@@ -44,12 +44,33 @@ Expected output: ~2,000 txns scored in well under a second (~10µs/txn),
 fraud detection around 50%+ at ~0% false positives with the rules baseline,
 and the drift monitor firing a few hundred txns after the pattern switch.
 
+## Cost-aware thresholds
+
+A fixed 0.6 flag threshold treats a $3 card-test and a $3,000 chargeback
+as equally worth catching. `CostAwareThreshold` (see
+`stream_fraud/threshold.py`) replaces it with a dollar-driven one: it
+buffers labeled (score, is_fraud, amount) observations — the delayed
+label feedback a streaming system actually gets — and sweeps candidate
+thresholds for the cheapest total cost:
+
+- flagged fraud → analyst confirmation ($2)
+- flagged legit → review + customer friction ($8)
+- missed fraud → the full transaction amount
+
+`examples/cost_threshold_example.py` compares default, F1-optimal, and
+cost-optimal thresholds before and after the drift injection. With cheap
+card-testing fraud, the tuner picks a precision-first threshold (0.55)
+that F1-optimal would overrule with 500+ expensive false positives;
+with $900–4,000 chargebacks, it converges with F1 at 0.55 and beats the
+stale fixed baseline by ~$1,400 per 6,000 txns.
+
 ## What's deliberately missing (roadmap)
 
 - [ ] Kafka/Flink adapter replacing the simulated stream
 - [ ] Online learning: scorer that retrains incrementally as labels arrive
 - [ ] Feature store (offline/online parity) instead of in-memory deques
-- [ ] Cost-aware thresholds: tune the flag threshold by $ loss, not F1
+- [x] Cost-aware thresholds: tune the flag threshold by $ loss, not F1 —
+  `stream_fraud/threshold.py` (`examples/cost_threshold_example.py`)
 - [ ] Multi-pattern drift: detect *which* pattern shifted, not just *that* it did
 
 ## Not for production
