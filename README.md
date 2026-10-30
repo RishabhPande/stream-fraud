@@ -44,6 +44,31 @@ Expected output: ~2,000 txns scored in well under a second (~10µs/txn),
 fraud detection around 50%+ at ~0% false positives with the rules baseline,
 and the drift monitor firing a few hundred txns after the pattern switch.
 
+## Drift replay and a second detector (experimental)
+
+`stream_fraud/ks.py` adds `KSMonitor`, a two-sample Kolmogorov-Smirnov test on the score
+distribution with the same `update()` / `check()` interface as `DriftMonitor`. It is an
+experimental option for comparison, not a replacement for PSI. Its `alpha` is the level of a
+single test; the monitor repeats the test on overlapping windows of bursty scores, so `alpha` is
+not the monitor's false-alarm rate. Measure that on no-drift replays.
+
+`stream_fraud/replay.py` replays a stream with drift injected at a known transaction and records
+when each detector first alarms. `examples/drift_replay.py` draws the figure below
+(needs `matplotlib`; the library stays stdlib):
+
+![Drift replay: rolling score, PSI, KS statistic, and delays across 20 seeds](docs/drift_replay.png)
+
+```bash
+pip install matplotlib && PYTHONPATH=. python examples/drift_replay.py
+```
+
+All data is synthetic. Seeds 1-20, drift at txn 1200, reference and window 400. On this setup, over
+those 20 seeds, PSI's first alarm came 121-362 txns after the drift in 18 runs. KS alarmed after the
+drift in 11 runs (189-1499 txns), never alarmed in 8, and PSI/KS each alarmed on the matching no-drift
+replay in 4/20 and 6/20 seeds. Every seed is in the figure. A first alarm before the drift point counts
+as an early alarm (PSI 2/20, KS 1/20), not a detection. Small windows and a bursty score stream make
+both detectors noisy; this is a teaching comparison, not a tuned benchmark.
+
 ## Cost-aware thresholds
 
 A fixed 0.6 flag threshold treats a $3 card-test and a $3,000 chargeback
