@@ -69,6 +69,20 @@ replay in 4/20 and 6/20 seeds. Every seed is in the figure. A first alarm before
 as an early alarm (PSI 2/20, KS 1/20), not a detection. Small windows and a bursty score stream make
 both detectors noisy; this is a teaching comparison, not a tuned benchmark.
 
+## Interactive drift demo
+
+`docs/drift-demo/` builds a self-contained "Catch the drift" page: watch the scored stream play
+out, guess where the fraud pattern changed, then reveal when PSI and KS actually alarmed on that
+seed. Rebuild it from the real replay code (stdlib only):
+
+```bash
+PYTHONPATH=. python scripts/build_drift_demo.py   # -> docs/drift-demo/index.html
+```
+
+Open the generated file in any browser; there is nothing to install. Every series in the page is
+regenerated from `stream_fraud.replay` on each build, and `tests/test_drift_demo.py` fails if the
+embedded data ever disagrees with the library.
+
 ## Cost-aware thresholds
 
 A fixed 0.6 flag threshold treats a $3 card-test and a $3,000 chargeback
