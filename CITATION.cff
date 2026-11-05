@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "stream-fraud"
+type: software
+abstract: "A pedagogical real-time transaction scoring pipeline in pure Python: a simulated card-transaction stream, sliding-window velocity features, an interpretable rule-based risk scorer, and PSI and KS drift detection."
+message: "If you use this software, please cite it as below."
+authors:
+  - given-names: Rishabh
+    family-names: Pande
+    orcid: "https://orcid.org/0009-0004-1901-7109"
+repository-code: "https://github.com/RishabhPande/stream-fraud"
+keywords:
+  - fraud detection
+  - transaction monitoring
+  - concept drift
+  - population stability index
+  - streaming
+  - financial crime
