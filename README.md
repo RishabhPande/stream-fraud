@@ -90,7 +90,9 @@ as equally worth catching. `CostAwareThreshold` (see
 `stream_fraud/threshold.py`) replaces it with a dollar-driven one: it
 buffers labeled (score, is_fraud, amount) observations — the delayed
 label feedback a streaming system actually gets — and sweeps candidate
-thresholds for the cheapest total cost:
+thresholds for the cheapest total cost. Equal-cost ties choose the higher threshold
+(fewer reviews); the returned threshold keeps the observed score precision so rounding
+does not change which transactions are flagged. Cost figures are rounded for display:
 
 - flagged fraud → analyst confirmation ($2)
 - flagged legit → review + customer friction ($8)
