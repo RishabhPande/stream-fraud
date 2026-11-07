@@ -97,10 +97,10 @@ class CostAwareThreshold:
         best_t, best_cost = candidates[0], float("inf")
         for t in candidates:
             cost = self.total_cost(t)
-            if cost < best_cost:            # strict < keeps the higher threshold
+            if cost <= best_cost:           # ascending sweep: equal cost keeps the higher threshold
                 best_cost, best_t = cost, t
         return TuningResult(
-            threshold=round(best_t, 4),
+            threshold=best_t,  # rounding can cross an observed score and change the decisions
             expected_cost=round(best_cost, 2),
             baseline_cost=round(self.total_cost(self.default_threshold), 2),
             n=n,
