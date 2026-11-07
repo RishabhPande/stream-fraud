@@ -1,5 +1,7 @@
 """Tests for CostAwareThreshold."""
 
+import pytest
+
 from stream_fraud.features import VelocityFeatures
 from stream_fraud.scorer import RiskScorer
 from stream_fraud.stream import TransactionStream
@@ -73,7 +75,7 @@ def test_buffer_evicts_oldest():
     # threshold 0.3 flags 2 -> $10 reviews, misses nothing -> cheapest
     res = t.tune()
     assert res.n == 3
-    assert res.threshold == 0.3
+    assert res.threshold == pytest.approx(0.3)
     assert res.expected_cost == 10.0
 
 
@@ -87,3 +89,34 @@ def test_tune_beats_or_ties_baseline_on_real_stream():
     result = tuner.tune()
     assert result.tuned and result.n == 1500
     assert result.expected_cost <= result.baseline_cost
+
+
+def test_equal_cost_tie_prefers_higher_threshold_and_fewer_reviews():
+    t = CostAwareThreshold(tp_cost=2.0)
+    t.observe(0.2, True, 2.0)
+    t.observe(0.8, True, 100.0)
+    # Catching both costs4; missing the small fraud and reviewing one also costs4.
+    res = t.tune()
+    assert res.expected_cost == 4.0
+    assert res.threshold == 0.8
+    assert t.confusion(res.threshold) == (1, 0, 1, 0)
+
+
+def test_equal_cost_tie_can_choose_flag_nothing():
+    t = CostAwareThreshold(tp_cost=2.0)
+    t.observe(0.2, True, 2.0)
+    res = t.tune()
+    assert res.threshold > 1.0
+    assert t.confusion(res.threshold) == (0, 0, 1, 0)
+    assert res.expected_cost == t.total_cost(res.threshold) == 2.0
+
+
+def test_returned_threshold_preserves_decisions_beyond_four_decimal_places():
+    t = CostAwareThreshold()
+    t.observe(0.50004, True, 100.0)
+    t.observe(0.50002, False, 1.0)
+    res = t.tune()
+    # Rounding0.50004 to0.5 would incorrectly add an8dollar false-positive review.
+    assert res.threshold == 0.50004
+    assert res.expected_cost == t.total_cost(res.threshold) == 2.0
+    assert t.confusion(res.threshold) == (1, 0, 0, 1)
