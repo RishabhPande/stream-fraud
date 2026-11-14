@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from stream_fraud.ks import KSMonitor
+from stream_fraud.page_hinkley import PageHinkleyMonitor
 from stream_fraud.replay import replay
 
 SEEDS = range(1, 21)
@@ -37,7 +38,7 @@ def seed_payload(seed):
     d = replay(n=N, drift_at=DRIFT_AT, seed=seed, window=WINDOW)
     q = replay(n=N, drift_at=None, seed=seed, window=WINDOW)
     row = {"seed": seed}
-    for name, run in (("psi", d), ("ks", d)):
+    for name, run in (("psi", d), ("ks", d), ("ph", d)):
         at = getattr(run, f"{name}_alarm_at")
         row[name] = {
             "alarm_at": at,
@@ -51,6 +52,7 @@ def seed_payload(seed):
         "score_roll": [round(x, 4) for x in rolling_mean(d.scores, ROLL)],
         "psi": [round(x, 4) for x in d.psi],
         "ks": [round(x, 4) for x in d.ks],
+        "ph": [round(x, 4) for x in d.ph],
         "summary": row,
     }
 
@@ -64,6 +66,7 @@ def build(out_path, seeds=SEEDS):
         "roll": ROLL,
         "psi_threshold": 0.25,
         "ks_crit": round(KSMonitor(WINDOW, WINDOW)._crit(WINDOW, WINDOW), 4),
+        "ph_threshold": PageHinkleyMonitor().threshold,
         "seeds": seeds,
     }
     template = Path(__file__).resolve().parents[1] / "docs" / "drift-demo" / "template.html"
