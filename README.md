@@ -44,7 +44,7 @@ Expected output: ~2,000 txns scored in well under a second (~10µs/txn),
 fraud detection around 50%+ at ~0% false positives with the rules baseline,
 and the drift monitor firing a few hundred txns after the pattern switch.
 
-## Drift replay and a second detector (experimental)
+## Drift replay: PSI vs KS vs Page-Hinkley
 
 `stream_fraud/ks.py` adds `KSMonitor`, a two-sample Kolmogorov-Smirnov test on the score
 distribution with the same `update()` / `check()` interface as `DriftMonitor`. It is an
@@ -52,28 +52,39 @@ experimental option for comparison, not a replacement for PSI. Its `alpha` is th
 single test; the monitor repeats the test on overlapping windows of bursty scores, so `alpha` is
 not the monitor's false-alarm rate. Measure that on no-drift replays.
 
+`stream_fraud/page_hinkley.py` adds `PageHinkleyMonitor`, a streaming change-point
+detector: no reference window, just an O(1)-memory cumulative sum over the scores
+that alarms once the running mean has moved by more than `delta` for long enough.
+Same `update()` / `check()` interface. Its `delta` and `threshold` are sensitivity
+knobs with no probabilistic meaning (same caveat as KS), and an alarm resets the
+accumulator, so the detector re-calibrates on the post-drift stream instead of
+latching. Experimental option, not a replacement for PSI.
+
 `stream_fraud/replay.py` replays a stream with drift injected at a known transaction and records
 when each detector first alarms. `examples/drift_replay.py` draws the figure below
 (needs `matplotlib`; the library stays stdlib):
 
-![Drift replay: rolling score, PSI, KS statistic, and delays across 20 seeds](docs/drift_replay.png)
+![Drift replay: rolling score, PSI, KS statistic, Page-Hinkley margin, and delays across 20 seeds](docs/drift_replay.png)
 
 ```bash
 pip install matplotlib && PYTHONPATH=. python examples/drift_replay.py
 ```
 
-All data is synthetic. Seeds 1-20, drift at txn 1200, reference and window 400. On this setup, over
-those 20 seeds, PSI's first alarm came 121-362 txns after the drift in 18 runs. KS alarmed after the
-drift in 11 runs (189-1499 txns), never alarmed in 8, and PSI/KS each alarmed on the matching no-drift
-replay in 4/20 and 6/20 seeds. Every seed is in the figure. A first alarm before the drift point counts
-as an early alarm (PSI 2/20, KS 1/20), not a detection. Small windows and a bursty score stream make
-both detectors noisy; this is a teaching comparison, not a tuned benchmark.
+All data is synthetic. Seeds 1-20, drift at txn 1200, reference and window 400; Page-Hinkley
+delta 0.02, threshold 20 (picked by sweeping on these same 20 seeds, so read its win as a hint,
+not a theorem). On this setup, over those 20 seeds, PSI's first alarm came 121-362 txns after the
+drift in 18 runs. KS alarmed after the drift in 11 runs (189-1499 txns) and never alarmed in 8.
+Page-Hinkley alarmed after the drift in all 20 runs (64-595 txns). On the matching no-drift
+replays, PSI/KS/Page-Hinkley alarmed in 4/20, 6/20 and 0/20 seeds. A first alarm before the drift
+point counts as an early alarm (PSI 2/20, KS 1/20, Page-Hinkley 0/20), not a detection. Every seed
+is in the figure. Small windows and a bursty score stream make the windowed detectors noisy; this
+is a teaching comparison, not a tuned benchmark.
 
 ## Interactive drift demo
 
 `docs/drift-demo/` builds a self-contained "Catch the drift" page: watch the scored stream play
-out, guess where the fraud pattern changed, then reveal when PSI and KS actually alarmed on that
-seed. Rebuild it from the real replay code (stdlib only):
+out, guess where the fraud pattern changed, then reveal when PSI, KS and Page-Hinkley actually
+alarmed on that seed. Rebuild it from the real replay code (stdlib only):
 
 ```bash
 PYTHONPATH=. python scripts/build_drift_demo.py   # -> docs/drift-demo/index.html
@@ -112,6 +123,9 @@ stale fixed baseline by ~$1,400 per 6,000 txns.
 - [ ] Feature store (offline/online parity) instead of in-memory deques
 - [x] Cost-aware thresholds: tune the flag threshold by $ loss, not F1 —
   `stream_fraud/threshold.py` (`examples/cost_threshold_example.py`)
+- [x] Page-Hinkley streaming change-point detector (O(1) memory, no reference
+  window) — `stream_fraud/page_hinkley.py`, compared against PSI and KS in
+  `examples/drift_replay.py`
 - [ ] Multi-pattern drift: detect *which* pattern shifted, not just *that* it did
 
 ## Not for production
