@@ -133,3 +133,13 @@ stale fixed baseline by ~$1,400 per 6,000 txns.
 Amounts, merchants, and fraud patterns are synthetic. The scorer is a
 rules baseline — a real system would use a trained model, proper label
 feedback loops, and adversarial review. Don't point this at real money.
+
+### Experimental monitor input checks
+
+`KSMonitor` requires positive integer reference/current windows and check cadence,
+and a finite `0 < alpha < 1`. `PageHinkleyMonitor` requires finite positive
+`delta` and `threshold` and an integer `warmup >= 0`. Both reject boolean,
+non-numeric and non-finite scores with `ValueError` before changing state.
+`ks_statistic` requires two non-empty samples of finite real values.
+These checks catch bad inputs; they do not validate calibration or turn repeated
+monitor checks into a statistical false-alarm guarantee.
