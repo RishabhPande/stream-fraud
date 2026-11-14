@@ -24,6 +24,8 @@ from bisect import bisect_right
 from collections import deque
 from dataclasses import dataclass
 
+from ._validation import finite_number, integer
+
 
 @dataclass
 class KSResult:
@@ -34,7 +36,10 @@ class KSResult:
 
 def ks_statistic(a: list[float], b: list[float]) -> float:
     """Two-sample KS statistic, exact, ties handled by evaluating at every observed value."""
-    sa, sb = sorted(a), sorted(b)
+    if not a or not b:
+        raise ValueError("KS samples must both be non-empty")
+    sa = sorted(finite_number(x, "sample value") for x in a)
+    sb = sorted(finite_number(x, "sample value") for x in b)
     n, m = len(sa), len(sb)
     d = 0.0
     for x in sorted(set(sa) | set(sb)):
@@ -50,6 +55,12 @@ class KSMonitor:
         alpha: float = 0.001,
         check_every: int = 10,
     ):
+        integer(reference_window, "reference_window")
+        integer(current_window, "current_window")
+        integer(check_every, "check_every")
+        finite_number(alpha, "alpha")
+        if not 0 < alpha < 1:
+            raise ValueError("alpha must be between 0 and 1 (exclusive)")
         self.reference_window = reference_window
         self.current_window = current_window
         self.alpha = alpha
@@ -61,10 +72,13 @@ class KSMonitor:
         self._last = KSResult(False, 0.0, self._crit(reference_window, current_window))
 
     def _crit(self, n: int, m: int) -> float:
-        c = math.sqrt(-math.log(self.alpha / 2) / 2)
+        half_alpha = self.alpha / 2
+        log_half = math.log(half_alpha) if half_alpha else math.log(self.alpha) - math.log(2)
+        c = math.sqrt(-log_half / 2)
         return c * math.sqrt((n + m) / (n * m))
 
     def update(self, score: float) -> None:
+        finite_number(score, "score")  # validate before changing either window
         if not self.reference_ready:
             self._ref.append(score)
             if len(self._ref) >= self.reference_window:
