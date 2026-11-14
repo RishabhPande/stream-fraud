@@ -64,7 +64,7 @@ latching. Experimental option, not a replacement for PSI.
 when each detector first alarms. `examples/drift_replay.py` draws the figure below
 (needs `matplotlib`; the library stays stdlib):
 
-![Drift replay: rolling score, PSI, KS statistic, Page-Hinkley margin, and delays across 20 seeds](docs/drift_replay.png)
+![Drift replay: rolling score, PSI, KS statistic, Page-Hinkley margin, and delays across 20 seeds](docs/drift_replay_ph.png)
 
 ```bash
 pip install matplotlib && PYTHONPATH=. python examples/drift_replay.py
