@@ -34,9 +34,11 @@ def test_embedded_series_match_replay(tmp_path):
     r = replay(n=3000, drift_at=1200, seed=2, window=400)
     assert s2["psi"] == [round(x, 4) for x in r.psi]
     assert s2["ks"] == [round(x, 4) for x in r.ks]
+    assert s2["ph"] == [round(x, 4) for x in r.ph]
     assert s2["score_roll"] == [round(x, 4) for x in rolling_mean(r.scores, 100)]
     assert s2["summary"]["psi"]["alarm_at"] == r.psi_alarm_at
     assert s2["summary"]["ks"]["alarm_at"] == r.ks_alarm_at
+    assert s2["summary"]["ph"]["alarm_at"] == r.ph_alarm_at
 
 
 def test_summary_flags_consistent(tmp_path):
@@ -44,7 +46,7 @@ def test_summary_flags_consistent(tmp_path):
     build(str(out), seeds=[2])
     _, data = _payload(out)
     for s in data["seeds"]:
-        for k in ("psi", "ks"):
+        for k in ("psi", "ks", "ph"):
             row = s["summary"][k]
             if row["never"]:
                 assert row["alarm_at"] is None and row["delay"] is None
