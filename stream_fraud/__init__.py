@@ -3,6 +3,7 @@
 from stream_fraud.drift import DriftMonitor, DriftResult
 from stream_fraud.features import FeatureVector, VelocityFeatures
 from stream_fraud.ks import KSMonitor, KSResult
+from stream_fraud.page_hinkley import PageHinkleyMonitor, PHResult
 from stream_fraud.scorer import RiskScorer, ScoreResult
 from stream_fraud.stream import Transaction, TransactionStream
 from stream_fraud.threshold import CostAwareThreshold, LabeledObservation, TuningResult
