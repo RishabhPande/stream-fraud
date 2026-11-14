@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ._validation import finite_number, integer
+
 
 @dataclass
 class PHResult:
@@ -40,12 +42,13 @@ class PageHinkleyMonitor:
         threshold: float = 20.0,
         warmup: int = 50,
     ):
+        finite_number(delta, "delta")
+        finite_number(threshold, "threshold")
+        integer(warmup, "warmup", minimum=0)
         if delta <= 0:
             raise ValueError("delta must be positive (score units)")
         if threshold <= 0:
             raise ValueError("threshold must be positive")
-        if warmup < 0:
-            raise ValueError("warmup must be >= 0")
         self.delta = delta
         self.threshold = threshold
         self.warmup = warmup
@@ -56,6 +59,7 @@ class PageHinkleyMonitor:
         self._last = PHResult(False, 0.0, threshold)
 
     def update(self, score: float) -> None:
+        finite_number(score, "score")  # a rejected sample must not poison running state
         self._n += 1
         self._mean += (score - self._mean) / self._n
         self._u += score - self._mean - self.delta
