@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from stream_fraud.page_hinkley import PageHinkleyMonitor
 from stream_fraud.replay import compare, replay
 
-out = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).resolve().parents[1] / "docs" / "drift_replay.png")
+out = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).resolve().parents[1] / "docs" / "drift_replay_ph.png")
 r = replay(seed=2)
 cmp = compare()
 rows = cmp["rows"]
