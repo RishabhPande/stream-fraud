@@ -32,6 +32,18 @@ TransactionStream → VelocityFeatures → RiskScorer → DriftMonitor
    index) of the score distribution between a frozen reference window and a
    rolling current window. PSI ≥ 0.25 → drifted.
 
+### Velocity event-time order
+
+`VelocityFeatures.update()` includes the current transaction and expects
+nondecreasing timestamps **per card**. Equal timestamps are allowed, and two
+cards may arrive in different time order. A late transaction raises `ValueError`
+before changing the card's history. Without this check, a late event could count
+future transactions in its windows and move the previous-transaction clock
+backward. The 5-minute, 1-hour and 24-hour lower bounds remain inclusive.
+
+This is a rejection policy, not event-time buffering or a watermark engine.
+Reorder late data upstream if it needs to be scored.
+
 ## Quickstart
 
 ```bash
