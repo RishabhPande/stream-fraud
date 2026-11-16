@@ -54,8 +54,14 @@ class VelocityFeatures:
             state.txns.popleft()
 
     def update(self, txn: Transaction) -> FeatureVector:
-        """Record txn and return the feature vector (current txn included)."""
+        """Record txn and return features, including txn.
+
+        Timestamps must be nondecreasing per card. Late events raise ValueError
+        before changing that card's history; equal timestamps are allowed.
+        """
         state = self._cards[txn.card_id]
+        if state.last_ts is not None and txn.ts < state.last_ts:
+            raise ValueError("transaction timestamps must be nondecreasing per card")
         self._prune(state, txn.ts)
 
         time_since = (
