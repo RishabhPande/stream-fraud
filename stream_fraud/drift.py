@@ -17,6 +17,8 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
+from ._validation import finite_number, integer
+
 
 @dataclass
 class DriftResult:
@@ -32,6 +34,12 @@ class DriftMonitor:
         current_window: int = 500,
         psi_threshold: float = 0.25,
     ):
+        integer(n_bins, "n_bins")
+        integer(reference_window, "reference_window")
+        integer(current_window, "current_window")
+        finite_number(psi_threshold, "psi_threshold")
+        if psi_threshold < 0:
+            raise ValueError("psi_threshold must be nonnegative")
         self.n_bins = n_bins
         self.reference_window = reference_window
         self.current_window = current_window
@@ -58,6 +66,10 @@ class DriftMonitor:
         return total
 
     def update(self, score: float) -> None:
+        """Accept a finite probability in [0, 1], or fail without changing state."""
+        finite_number(score, "score")
+        if not 0 <= score <= 1:
+            raise ValueError("score must be in [0, 1]")
         if not self.reference_ready:
             self._ref.append(score)
             if len(self._ref) >= self.reference_window:
