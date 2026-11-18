@@ -41,7 +41,8 @@ class TuningResult:
 class CostAwareThreshold:
     """Online buffer + argmin threshold tuner.
 
-    Scores must be finite and in [0, 1], labels must be bools, and amounts
+    Scores must be finite and in [0, 1]. Labels accept bools or finite numeric
+    0/1 values (normalized to bool). Amounts
     and review costs must be finite and nonnegative. Invalid feedback raises
     ValueError before changing the buffer. Query thresholds may lie outside
     [0, 1] to represent flag-all or flag-nothing decisions, but must be finite.
@@ -72,7 +73,10 @@ class CostAwareThreshold:
         if not 0 <= score <= 1:
             raise ValueError("score must be in [0, 1]")
         if not isinstance(is_fraud, bool):
-            raise ValueError("is_fraud must be a bool")
+            finite_number(is_fraud, "is_fraud")
+            if is_fraud not in (0, 1):
+                raise ValueError("is_fraud must be a bool or numeric 0/1")
+        is_fraud = bool(is_fraud)
         finite_number(amount, "amount")
         if amount < 0:
             raise ValueError("amount must be nonnegative")
