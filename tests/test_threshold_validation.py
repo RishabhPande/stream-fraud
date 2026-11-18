@@ -31,7 +31,7 @@ def test_invalid_buffer_capacity_rejected(value):
 @pytest.mark.parametrize("field,value", [(field, value)
     for field, values in [("score", BAD_NUMBERS + [-0.01, 1.01]),
                           ("amount", BAD_NUMBERS + [-0.01]),
-                          ("is_fraud", [0, 1, "false", None])]
+                          ("is_fraud", [-1, 2, 0.5, math.nan, math.inf, -math.inf, "false", "0", "1", None, 10**1000])]
     for value in values])
 def test_rejected_feedback_preserves_full_buffer_and_future_tuning(field, value):
     tuner = CostAwareThreshold(max_buffer=2)
@@ -65,3 +65,16 @@ def test_valid_boundaries_zero_costs_and_flag_nothing_threshold():
     assert tuner.total_cost(1.0001) == 100
     assert tuner.confusion(1.0001) == (0, 0, 1, 1)
     assert tuner.tune().threshold == 1
+
+
+@pytest.mark.parametrize("label", [False, True, 0, 1, 0.0, 1.0])
+def test_binary_labels_preserve_decisions_and_are_normalized(label):
+    tuner = CostAwareThreshold()
+    control = CostAwareThreshold()
+    tuner.observe(0.7, label, 100)
+    control.observe(0.7, bool(label), 100)
+    assert type(tuner._obs[0].is_fraud) is bool
+    assert tuner.tune() == control.tune()
+    for threshold in [0, 0.7, 1.0001]:
+        assert tuner.confusion(threshold) == control.confusion(threshold)
+        assert tuner.total_cost(threshold) == control.total_cost(threshold)
