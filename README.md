@@ -146,7 +146,12 @@ Amounts, merchants, and fraud patterns are synthetic. The scorer is a
 rules baseline — a real system would use a trained model, proper label
 feedback loops, and adversarial review. Don't point this at real money.
 
-### Experimental monitor input checks
+### Monitor input checks
+
+`DriftMonitor` (PSI) requires positive integer bin/window sizes, a finite
+nonnegative PSI threshold, and finite probability scores in `[0, 1]`.
+Invalid inputs raise `ValueError` before changing either window. Zero PSI
+thresholds and probability endpoints are supported.
 
 `KSMonitor` requires positive integer reference/current windows and check cadence,
 and a finite `0 < alpha < 1`. `PageHinkleyMonitor` requires finite positive
