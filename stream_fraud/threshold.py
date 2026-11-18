@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from stream_fraud._validation import finite_number, integer
+
 
 @dataclass
 class LabeledObservation:
@@ -37,7 +39,14 @@ class TuningResult:
 
 
 class CostAwareThreshold:
-    """Online buffer + argmin threshold tuner."""
+    """Online buffer + argmin threshold tuner.
+
+    Scores must be finite and in [0, 1]. Labels accept bools or finite numeric
+    0/1 values (normalized to bool). Amounts
+    and review costs must be finite and nonnegative. Invalid feedback raises
+    ValueError before changing the buffer. Query thresholds may lie outside
+    [0, 1] to represent flag-all or flag-nothing decisions, but must be finite.
+    """
 
     def __init__(
         self,
@@ -46,6 +55,12 @@ class CostAwareThreshold:
         fp_cost: float = 8.0,   # review + customer friction per false alarm
         max_buffer: int = 50_000,
     ):
+        finite_number(default_threshold, "default_threshold")
+        for name, cost in [("tp_cost", tp_cost), ("fp_cost", fp_cost)]:
+            finite_number(cost, name)
+            if cost < 0:
+                raise ValueError(f"{name} must be nonnegative")
+        integer(max_buffer, "max_buffer")
         self.default_threshold = default_threshold
         self.tp_cost = tp_cost
         self.fp_cost = fp_cost
@@ -54,12 +69,24 @@ class CostAwareThreshold:
 
     def observe(self, score: float, is_fraud: bool, amount: float) -> None:
         """Record one labeled observation; oldest evicted past max_buffer."""
+        finite_number(score, "score")
+        if not 0 <= score <= 1:
+            raise ValueError("score must be in [0, 1]")
+        if not isinstance(is_fraud, bool):
+            finite_number(is_fraud, "is_fraud")
+            if is_fraud not in (0, 1):
+                raise ValueError("is_fraud must be a bool or numeric 0/1")
+        is_fraud = bool(is_fraud)
+        finite_number(amount, "amount")
+        if amount < 0:
+            raise ValueError("amount must be nonnegative")
         self._obs.append(LabeledObservation(score, is_fraud, amount))
         if len(self._obs) > self.max_buffer:
             del self._obs[: len(self._obs) - self.max_buffer]
 
     def total_cost(self, threshold: float) -> float:
         """Total $ cost if every observation were decided at `threshold`."""
+        finite_number(threshold, "threshold")
         total = 0.0
         for o in self._obs:
             if o.score >= threshold:
@@ -70,6 +97,7 @@ class CostAwareThreshold:
 
     def confusion(self, threshold: float) -> tuple[int, int, int, int]:
         """(tp, fp, fn, tn) if every observation were decided at `threshold`."""
+        finite_number(threshold, "threshold")
         tp = fp = fn = tn = 0
         for o in self._obs:
             if o.score >= threshold:
